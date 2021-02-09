@@ -222,9 +222,35 @@ class Solver(object):
 
                 # optimize model in training mode
                 if not cross_valid:
-                    self.optimizer.zero_grad()
+                    def closure():
+                        #Not sure if I should add
+                        #this coode block (starting with "with torch"
+                        #and ending with "+ mag_loss"
+                        #Right before loss.backward() #To calculate loss?
+                        #Test and if it doesnt work, I can try that variation
+                        #And I can also try to adjust:
+                        #1. Hyperparameters: lr, momentum
+                        #2. re-ordering loss.backward() / self.optimizer.step(), self.optimizer.zero_grad() which 
+                        #I changed the order of to match SAM repo
+                        with torch.autograd.set_detect_anomaly(True):
+                            if self.args.loss == 'l1':
+                                loss = F.l1_loss(clean, estimate)
+                            elif self.args.loss == 'l2':
+                                loss = F.mse_loss(clean, estimate)
+                            elif self.args.loss == 'huber':
+                                loss = F.smooth_l1_loss(clean, estimate)
+                            else:
+                                raise ValueError(f"Invalid loss {self.args.loss}")
+                            # MultiResolution STFT loss
+                            if self.args.stft_loss:
+                                sc_loss, mag_loss = self.mrstftloss(estimate.squeeze(1), clean.squeeze(1))
+                                loss += sc_loss + mag_loss
+                        loss.backward()
+                        return loss
+                    
                     loss.backward()
-                    self.optimizer.step()
+                    self.optimizer.step(closure)
+                    self.optimizer.zero_grad()
 
             total_loss += loss.item()
             logprog.update(loss=format(total_loss / (i + 1), ".5f"))
