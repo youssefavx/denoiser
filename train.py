@@ -70,6 +70,10 @@ def run(args):
     # optimizer
     if args.optim == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, args.beta2))
+    elif args.optim == "sam":
+        #Adding SAM optimizer: https://github.com/davda54/sam
+        base_optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, args.beta2))  # define an optimizer for the "sharpness-aware" update
+        optimizer = SAM(model.parameters(), base_optimizer, lr=0.1, momentum=0.9)
     else:
         logger.fatal('Invalid optimizer %s', args.optim)
         os._exit(1)
