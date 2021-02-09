@@ -6,6 +6,8 @@
 # LICENSE file in the root directory of this source tree.
 # authors: adiyoss and adefossez
 
+#Download this script: https://github.com/davda54/sam
+from sam import SAM
 import logging
 import os
 
